@@ -6,6 +6,7 @@
 #define TRUE 1
 #define N 100
 #define ENTITY_SPACE_DIM 10000 //10 KB
+#define ENTITY_RELATION_DIM 10000 //10 KB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
 #define DELETE_CHAR '\0'
@@ -19,9 +20,11 @@ void delRel();
 void report();
 int searchPlace(char*, char*, int, int, int);
 
-//entity section
+//memory section
 char entitySpace[ENTITY_SPACE_DIM + 1] = { [0 ... ENTITY_SPACE_DIM] = '\0' };
+char relationSpace[ENTITY_RELATION_DIM + 1] = { [0 ... ENTITY_RELATION_DIM] = '\0' };
 int eMarker = 0;
+int rMarker = 0;
 
 int main(int argc, char** argv){
    //setup
@@ -69,13 +72,30 @@ void read(){
       command[3] = '\0';
    }while(strcmp(command, "end"));
    //Calcolo finale
-   printf("%s\n", entitySpace);
+   printf("%s\n%s\n", entitySpace, relationSpace);
 }
 
 void addRel(){
-   char idRel[N+1], src[N+1], dst[N+1];
+   char rel[N+1], src[N+1], dst[N+1];
 
-   scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", idRel, src, dst);
+   scanf(" \"%[^\"]\" \"%[^\"]\" \"%[^\"]\"", src, dst, rel);
+
+   char* srcPointer = strstr(entitySpace, src);
+   if(srcPointer == NULL) return;
+
+   char* dstPointer = strstr(entitySpace, dst);
+   if(dstPointer == NULL) return;
+
+   char* relPointer = strstr(relationSpace, rel);
+
+   if(relPointer == NULL){
+      int i;
+      for(i = 0; rel[i] != '\0'; i++){
+	 relationSpace[rMarker++] = rel[i];
+      }
+      relationSpace[rMarker++] = '|';
+   }
+
 }
 
 void delEnt(){
@@ -93,18 +113,22 @@ void delEnt(){
 
 void addEnt(){
    char c;
-   int foundPlace = FALSE, equals = TRUE;
 
-   scanf(" %c", &c);
-   while(c != ' ' && c != '\n') {
-      entitySpace[eMarker] = c;
-      eMarker++;
+   scanf(" \"%c", &c);
+   while(c != '"') {
+      entitySpace[eMarker++] = c;
+      //eMarker++;
       scanf("%c", &c);
    }
-   entitySpace[eMarker] = '|';
-   eMarker++;
+   entitySpace[eMarker++] = '|';
 
-   printf("%s\n", entitySpace);
+   //Prendo l'ultimo carattere prima del prossimo comando
+   //sia che questo sia un \n, uno spazio o qualsiasi altro separatore
+   scanf("%c", &c);
+   
+   //eMarker++;
+
+   //printf("%s\n", entitySpace);
 }
 
 void delRel(){
