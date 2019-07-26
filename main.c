@@ -5,7 +5,7 @@
 #define FALSE 0
 #define TRUE 1
 #define N 100
-#define ENTITY_SPACE_DIM 100 //10 KB
+#define ENTITY_SPACE_DIM 10000 //10 KB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
 #define DELETE_CHAR '\0'
@@ -16,19 +16,20 @@ void addEnt();
 void addRel();
 void delEnt();
 void delRel();
+void report();
 int searchPlace(char*, char*, int, int, int);
 
 //entity section
-char entitySpace[ENTITY_SPACE_DIM + 1] = { '*', [1 ... ENTITY_SPACE_DIM] = '*' };
+char entitySpace[ENTITY_SPACE_DIM + 1] = { [0 ... ENTITY_SPACE_DIM] = '\0' };
 int eMarker = 0;
 
 int main(int argc, char** argv){
    //setup
    //entitySpace[ENTITY_SPACE_DIM] = '\0';
    //printf("%s\n", entitySpace);
-   
+   //printf("start\n");
    read();
-
+   //printf("end\n");
    return 0;
 }
 
@@ -39,9 +40,10 @@ void read(){
 
    do{
       fgets(command, COMMAND_LENGTH + 1, stdin);  
-
+      printf("%s\n", command);
       int hash = command[0] + command[3];
 
+      //printf("%d\n", hash);
       switch(hash){
 	 //addent
 	 case 198:
@@ -58,12 +60,14 @@ void read(){
 	 case 214:
 	    delRel();
 	    break;
+	 case 226:
+	    report();
+	    break;
 	 default:
 	    break;
       }
-
-   }while(!strcmp(command, "end"));
-
+      command[3] = '\0';
+   }while(strcmp(command, "end"));
    //Calcolo finale
    printf("%s\n", entitySpace);
 }
@@ -92,13 +96,19 @@ void addEnt(){
    int foundPlace = FALSE, equals = TRUE;
 
    scanf(" %c", &c);
-   while(c != ' ') {
+   while(c != ' ' && c != '\n') {
       entitySpace[eMarker] = c;
       eMarker++;
       scanf("%c", &c);
    }
-   entitySpace[eMarker] = '\0';
+   entitySpace[eMarker] = '|';
+   eMarker++;
+
+   printf("%s\n", entitySpace);
 }
 
 void delRel(){
+}
+
+void report(){
 }
