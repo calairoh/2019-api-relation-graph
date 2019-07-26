@@ -79,10 +79,10 @@ void delEnt(){
    
    scanf(" \"%[^\"]\"", ent);
 
-   char init = strstr(entitySpace, ent);
+   char* init = strstr(entitySpace, ent);
 
-   while(init != '*'){
-      init = '*';
+   while(*init != '*'){
+      *init = '*';
       *init++;
    }
 }
