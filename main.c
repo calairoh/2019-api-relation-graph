@@ -26,8 +26,8 @@ char* contains(char*, char*);
 int searchPlace(char*, char*, int, int, int);
 
 //memory section
-char entitySpace[ENTITY_SPACE_DIM + 1] = { '|', [1 ... ENTITY_SPACE_DIM] = '\0' };
-char relationSpace[RELATION_SPACE_DIM + 1] = { '|', [1 ... RELATION_SPACE_DIM] = '\0' };
+char entitySpace[ENTITY_SPACE_DIM + 1] = { [0 ... ENTITY_SPACE_DIM] = '\0' };
+char relationSpace[RELATION_SPACE_DIM + 1] = { [0 ... RELATION_SPACE_DIM] = '\0' };
 int eMarker = 0;
 int rMarker = 0;
 int relNum = 0;
@@ -82,7 +82,8 @@ void read(){
    }while(strcmp(command, "end"));
    //Calcolo finale
    //printf("%s\n%s\n", entitySpace, relationSpace);
-  printf("%d\n", relEntNum);
+   //printf("%d\n", relEntNum);
+   //printf("\n");
 }
 
 void addRel(){
@@ -99,6 +100,7 @@ void addRel(){
    char* relPointer = contains(relationSpace, rel);
 
    if(relPointer == NULL){
+      relPointer = &relationSpace[rMarker];
       int i;
       for(i = 0; rel[i] != '\0'; i++){
 	 relationSpace[rMarker++] = rel[i];
@@ -160,7 +162,7 @@ void delRel(){
 void report(){
    int i, k;
    long max;
-   char* result[RESULT_ROW][2] = { { NULL, NULL} };
+   char* result[RESULT_ROW][2] = { { NULL, NULL } };
    
    if(!relEntNum){
       printf("none\n");
@@ -174,15 +176,25 @@ void report(){
    return;*/
 
    char* rel = relationSpace;
-   while(*rel != '\0'){      
-      int hash = (long)(rel + 1) % ENTITY_RELATION_DIM;
+   int num;
+   while(*rel != '\0'){
+      
+      for(i = 0; i < num; i++){
+	 result[i][0] = NULL;
+	 result[i][1] = NULL;
+      }
+      
+      num = 0;      
+      int hash = (long)(rel) % ENTITY_RELATION_DIM;
 
       for(; relations[hash][0] != NULL; hash++){
 	 if(relations[hash][0] == rel){
 	    if(*relations[hash][1] != '*'){
 	       for(k = 0; result[k][0] != NULL && result[k][0] != relations[hash][2]; k++) ;
-	       if(result[k][0] == NULL)
+	       if(result[k][0] == NULL){
+		  num++;
 		  result[k][0] = relations[hash][2];
+	       }
 	       
 	       result[k][1]++;
 	    }
@@ -191,7 +203,7 @@ void report(){
       
       //Cerco il numero più alto (da ottimizzare)
       max = (long)result[0][1];
-      for(i = 0; i < RESULT_ROW; i++)
+      for(i = 1; i < num; i++)
 	 if((long)result[i][1] > max)
 	    max = (long)result[i][1];
 
@@ -200,12 +212,13 @@ void report(){
       for(i = 0; i < RESULT_ROW; i++)
 	 if((long)result[i][1] == max)
 	    printf("\"%s\" ", result[i][0]);
-      printf("%ld", max); 
+      printf("%ld; ", max); 
 
       //Vado alla prossima relazione
       for(; *rel != '\0'; rel++) ;
       rel++;
    }
+   printf("\n");
 }
 
 char* contains(char *str, char *obj){
