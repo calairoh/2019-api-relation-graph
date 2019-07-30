@@ -273,7 +273,7 @@ void report(){
 	 } else {
 	    i = 0;
 	    while(toWrite[i] != NULL && strcmp(toWrite[i], rel) < 0){
-	       while(toWrite[i] != NULL && *(toWrite[i]) <= '9') 
+	       while(toWrite[i] != NULL && *(toWrite[i]) == '"') 
 		  i++;
 	       //Se non è NULL sono su un numero, dunque controllo il prossimo
 	       if(toWrite[i] != NULL)
