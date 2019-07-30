@@ -76,20 +76,23 @@ void read(){
 	 default:
 	    break;
       }
-      
+      //printf("%s\n", command);
+      //fflush(stdout);
       command[3] = '\0';
+      //i++;
    
    }while(strcmp(command, "end"));
    //Calcolo finale
+   //printf("%d\n", i);
    //printf("%s\n%s\n", entitySpace, relationSpace);
-   //printf("%d\n", relEntNum);
-   //printf("\n");
+   //printf("%d %d %d %d", relEntNum, relNum, eMarker, rMarker);
+   //printf("%d\t%d\t%d\t", '\n', '\t', '\r');
 }
 
 void addRel(){
-   char rel[N+1], src[N+1], dst[N+1];
+   char rel[N+1], src[N+1], dst[N+1], c;
 
-   scanf(" %s %s %s", src, dst, rel);
+   scanf(" %s %s %s\n", src, dst, rel);
 
    char* srcPointer = contains(entitySpace, src);
    if(srcPointer == NULL) return;
@@ -129,37 +132,37 @@ void addRel(){
 void delEnt(){
    char ent[N+1];
    
-   scanf(" %s ", ent);
-
-   char* init = strstr(entitySpace, ent);
-
-   while(*init != '*'){
-      *init = '*';
-      *init++;
+   scanf(" %s\n", ent);
+   //printf("%s\t", ent);
+   char* init = contains(entitySpace, ent);
+   
+   if(init != NULL){   
+      while(*init != '\0'){
+	 *init = '*';
+	 *init++;
+      }
    }
 }
 
 void addEnt(){
-   char c;
-
-   scanf(" %c", &c);
-   while(c != '\n' && c != ' ') {
-      entitySpace[eMarker++] = c;
-      scanf("%c", &c);
+   char ent[N+1];
+   int i;
+   
+   scanf(" %s\n", ent);
+   //printf("%s\t", ent);
+   char* init = contains(entitySpace, ent);
+   
+   if(init == NULL){
+      for(i = 0; ent[i] != '\0'; i++)
+	 entitySpace[eMarker++] = ent[i];
+      eMarker++;
    }
-   entitySpace[eMarker++] = '\0';
-
-   //Prendo l'ultimo carattere prima del prossimo comando
-   //sia che questo sia un \n, uno spazio o qualsiasi altro separatore
-   //scanf("%c", &c);
-
-   //printf("%s\n", entitySpace);
 }
 
 void delRel(){
    char rel[N+1], src[N+1], dst[N+1];
 
-   scanf(" %s %s %s", src, dst, rel);
+   scanf(" %s %s %s\n", src, dst, rel);
 
    char* srcPointer = contains(entitySpace, src);
    if(srcPointer == NULL) return;
@@ -195,7 +198,11 @@ void report(){
    char* entitiesToWrite[RESULT_ROW] = { NULL };
    char numbers[RESULT_ROW] = { '\0' };
    char semiColon = ';';
-   
+   char c;
+
+   //Pulisco dopo il report
+   scanf("\n");
+
    if(!relEntNum){
       printf("none\n");
       return;
@@ -206,7 +213,7 @@ void report(){
 	 printf("%s | %s | %s\n", relations[i][0], relations[i][1], relations[i][2]);
    }
    return;*/
-
+   
    char* rel = relationSpace;
    while(*rel != '\0'){      
 
@@ -220,7 +227,7 @@ void report(){
 
       for(; relations[hash][0] != NULL; hash++){
 	 if(relations[hash][0] == rel){
-	    if(*relations[hash][1] != '*'){
+	    if(*relations[hash][1] != '*' && *relations[hash][2] != '*'){
 	       for(k = 0; result[k][0] != NULL && result[k][0] != relations[hash][2]; k++) ;
 	       if(result[k][0] == NULL){
 		  num++;
@@ -232,73 +239,84 @@ void report(){
 	 }
       }
       
-      //Cerco le entità con il massimo che andranno poi stampate
-      max = 0;
-      for(i = 0; i < num; i++) {
-	 if((long)result[i][1] > max){
-	    max = (long)result[i][1];
-	    entitiesToWrite[0] = result[i][0];
-	    entityCounter = 1;
-	    for(k = 1; entitiesToWrite[k] != NULL; k++) 
-	       entitiesToWrite[k] = NULL;
-	 } else if((long)result[i][1] == max){
+      if(result[0][0] != NULL){	
+	 
+	 //Cerco le entità con il massimo che andranno poi stampate
+	 max = 0;
+	 for(i = 0; i < num; i++) {
+	    if((long)result[i][1] > max){
+	       max = (long)result[i][1];
+	       entitiesToWrite[0] = result[i][0];
+	       entityCounter = 1;
+	       for(k = 1; entitiesToWrite[k] != NULL; k++) 
+		  entitiesToWrite[k] = NULL;
+	    } else if((long)result[i][1] == max){
+	       k = 0;
+	       
+	       while(entitiesToWrite[k] != NULL && strcmp(entitiesToWrite[k], result[i][0]) < 0) 
+		  k++;
+	       
+	       int j;
+	       for(j = entityCounter; j > k; j--)
+		  entitiesToWrite[j] = entitiesToWrite[j-1];
+	       entitiesToWrite[j] = result[i][0];
+	       entityCounter++;
+	    }
+	 }
+
+	 //Cerco un posto dove mettere la relazione
+	 if(!counter){
+	    //Inserisco al primo posto
+	    toWrite[0] = rel;
+	    counter++;
 	    k = 0;
-	    
-	    while(entitiesToWrite[k] != NULL && strcmp(entitiesToWrite[k], result[i][0]) < 0) 
-	       k++;
-	    
-	    int j;
-	    for(j = entityCounter; j > k; j--)
-	       entitiesToWrite[j] = entitiesToWrite[j-1];
-	    entitiesToWrite[j] = result[i][0];
-	    entityCounter++;
-	 }
-      }
-
-      //Cerco un posto dove mettere la relazione
-      if(!counter){
-	 //Inserisco al primo posto
-	 toWrite[0] = rel;
-	 counter++;
-	 k = 0;
-      } else {
-	 i = 0;
-	 if(toWrite[i] != NULL && strcmp(toWrite[i], rel) < 0){
-	    while(*(toWrite[i]) <= '9') 
-	       i++;
-	    i++;
 	 } else {
-	    for(k = toWriteNum + entityCounter + 1; k > i; k--)
-	       toWrite[k] = toWrite[k - entityCounter - 2];
-	    toWrite[k] = rel;
+	    i = 0;
+	    while(toWrite[i] != NULL && strcmp(toWrite[i], rel) < 0){
+	       while(toWrite[i] != NULL && *(toWrite[i]) <= '9') 
+		  i++;
+	       //Se non è NULL sono su un numero, dunque controllo il prossimo
+	       if(toWrite[i] != NULL)
+		  i++;
+	    }
+	    
+	    if(toWrite[i] != NULL){
+	       for(k = toWriteNum + entityCounter + 1; k > i; k--)
+		  toWrite[k] = toWrite[k - entityCounter - 2];
+	       toWrite[k] = rel;
+	    } else {
+	       k = i;
+	       toWrite[k] = rel;
+	    }
+	 } 
+
+	 for(i = 0; i < entityCounter; i++){
+	    toWrite[k + i + 1] = entitiesToWrite[i];
 	 }
-      } 
+	 toWrite[k + entityCounter + 1] = &numbers[nMarker];
+	 toWriteNum += entityCounter + 2;
 
-      for(i = 0; i < entityCounter; i++){
-	 toWrite[k + i + 1] = entitiesToWrite[i];
+	 int maxTmp = max, tmp = 0;
+	 while(maxTmp > 0){
+	    maxTmp /= 10;
+	    tmp++;
+	 }
+
+	 numbers[nMarker + tmp] = semiColon;
+	 int nMarkerNext = nMarker + tmp + 2;
+	 tmp--; 
+	 while(max > 0){
+	    numbers[nMarker + tmp] = (char)((max % 10) + '0');
+	    max /= 10;
+	    tmp--;
+	 }
+	 nMarker = nMarkerNext;
       }
-      toWrite[k + entityCounter + 1] = &numbers[nMarker];
-      toWriteNum += entityCounter + 2;
-
-      int maxTmp = max, tmp = 0;
-      while(maxTmp > 0){
-         maxTmp /= 10;
-         tmp++;
-      }
-
-      numbers[nMarker + tmp] = semiColon;
-      int nMarkerNext = nMarker + tmp + 2;
-      tmp--; 
-      while(max > 0){
-	 numbers[nMarker + tmp] = (char)((max % 10) + '0');
-	 max /= 10;
-	 tmp--;
-      }
-      nMarker = nMarkerNext;
-
+      
       //Vado alla prossima relazione
       for(; *rel != '\0'; rel++) ;
       rel++;
+   
    }
 
    for(i = 0; toWrite[i] != NULL; i++)
@@ -316,7 +334,8 @@ char* contains(char *str, char *obj){
       for(; str[i] != '\0'; i++) ;
       i++;
 
-      if(str[i] == '\0') return NULL;
+      if(str[i] == '\0') 
+	 return NULL;
    }
 
    return NULL;
