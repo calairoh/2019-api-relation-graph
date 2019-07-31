@@ -4,16 +4,14 @@
 
 #define FALSE 0
 #define TRUE 1
-#define N 100
-#define RESULT_ROW 100
-#define ENTITY_SPACE_DIM 10000 //10 KB
-#define RELATION_SPACE_DIM 10000 //10 KB
-#define ENTITY_RELATION_DIM 1000000 //100 KB
+#define N 1000
+#define RESULT_ROW 1000 
+#define ENTITY_SPACE_DIM 100000 //100 KB
+#define RELATION_SPACE_DIM 100000 //100 KB
+#define ENTITY_RELATION_DIM 1000000 //3 MB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
 #define NULL_CHAR '*'
-
-
 
 void read();
 void addEnt();
@@ -35,12 +33,8 @@ char* relations[ENTITY_RELATION_DIM][3] = { { NULL, NULL, NULL } };
 int relEntNum = 0;
 
 int main(int argc, char** argv){
-   //setup
-   //entitySpace[ENTITY_SPACE_DIM] = '\0';
-   //printf("%s\n", entitySpace);
-   //printf("start\n");
    read();
-   //printf("end\n");
+   
    return 0;
 }
 
@@ -48,13 +42,11 @@ void read(){
    char c;
    char command[COMMAND_LENGTH + 1];
    char* commandPointer;
-
+   command[89] = 'c';
    do{
       commandPointer = fgets(command, COMMAND_LENGTH + 1, stdin);  
-      //printf("%s\n", command);
       int hash = command[0] + command[3];
 
-      //printf("%s\t%d\n", command, hash);
       switch(hash){
 	 case 198:
 	    addEnt();
