@@ -8,7 +8,7 @@
 #define RESULT_ROW 1000 
 #define ENTITY_SPACE_DIM 100000 //100 KB
 #define RELATION_SPACE_DIM 100000 //100 KB
-#define ENTITY_RELATION_DIM 1000000 //3 MB
+#define ENTITY_RELATION_DIM 2000000 //6 MB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
 #define NULL_CHAR '*'
@@ -42,7 +42,7 @@ void read(){
    char c;
    char command[COMMAND_LENGTH + 1];
    char* commandPointer;
-   command[89] = 'c';
+
    do{
       commandPointer = fgets(command, COMMAND_LENGTH + 1, stdin);  
       int hash = command[0] + command[3];
@@ -99,7 +99,7 @@ void addRel(){
    int hash = (long)relPointer % ENTITY_RELATION_DIM;
    
    //Scorro fino al primo posto libero
-   for(; relations[hash][0] != NULL; hash++){
+   for(; relations[hash][0] != NULL; hash = (hash + 1) % ENTITY_RELATION_DIM){
       if(relations[hash][0] == relPointer && 
 	 relations[hash][1] == srcPointer &&
 	 relations[hash][2] == dstPointer)
@@ -160,7 +160,7 @@ void delRel(){
    int hash = (long)relPointer % ENTITY_RELATION_DIM;
    
    //Scorro fino al primo posto libero
-   for(; relations[hash][0] != NULL; hash++){
+   for(; relations[hash][0] != NULL; hash = (hash + 1) % ENTITY_RELATION_DIM){
       if(relations[hash][0] == relPointer && 
 	 relations[hash][1] == srcPointer &&
 	 relations[hash][2] == dstPointer){
