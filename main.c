@@ -8,10 +8,9 @@
 #define RESULT_ROW 100
 #define ENTITY_SPACE_DIM 10000 //10 KB
 #define RELATION_SPACE_DIM 10000 //10 KB
-#define ENTITY_RELATION_DIM 100000 //100 KB
+#define ENTITY_RELATION_DIM 1000000 //100 KB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
-#define DELETE_CHAR '\0'
 #define NULL_CHAR '*'
 
 
@@ -32,7 +31,6 @@ int eMarker = 0;
 int rMarker = 0;
 int relNum = 0;
 
-
 char* relations[ENTITY_RELATION_DIM][3] = { { NULL, NULL, NULL } };
 int relEntNum = 0;
 
@@ -47,12 +45,12 @@ int main(int argc, char** argv){
 }
 
 void read(){
-   int i = 0;
    char c;
-   char command[COMMAND_LENGTH];
-   
+   char command[COMMAND_LENGTH + 1];
+   char* commandPointer;
+
    do{
-      fgets(command, COMMAND_LENGTH + 1, stdin);  
+      commandPointer = fgets(command, COMMAND_LENGTH + 1, stdin);  
       //printf("%s\n", command);
       int hash = command[0] + command[3];
 
@@ -76,23 +74,16 @@ void read(){
 	 default:
 	    break;
       }
-      //printf("%s\n", command);
-      //fflush(stdout);
+      
       command[3] = '\0';
-      //i++;
    
    }while(strcmp(command, "end"));
-   //Calcolo finale
-   //printf("%d\n", i);
-   //printf("%s\n%s\n", entitySpace, relationSpace);
-   //printf("%d %d %d %d", relEntNum, relNum, eMarker, rMarker);
-   //printf("%d\t%d\t%d\t", '\n', '\t', '\r');
 }
 
 void addRel(){
    char rel[N+1], src[N+1], dst[N+1], c;
 
-   scanf(" %s %s %s\n", src, dst, rel);
+   int tmp = scanf(" %s %s %s\n", src, dst, rel);
 
    char* srcPointer = contains(entitySpace, src);
    if(srcPointer == NULL) return;
@@ -132,8 +123,8 @@ void addRel(){
 void delEnt(){
    char ent[N+1];
    
-   scanf(" %s\n", ent);
-   //printf("%s\t", ent);
+   int tmp = scanf(" %s\n", ent);
+
    char* init = contains(entitySpace, ent);
    
    if(init != NULL){   
@@ -148,8 +139,8 @@ void addEnt(){
    char ent[N+1];
    int i;
    
-   scanf(" %s\n", ent);
-   //printf("%s\t", ent);
+   int tmp = scanf(" %s\n", ent);
+
    char* init = contains(entitySpace, ent);
    
    if(init == NULL){
@@ -162,7 +153,7 @@ void addEnt(){
 void delRel(){
    char rel[N+1], src[N+1], dst[N+1];
 
-   scanf(" %s %s %s\n", src, dst, rel);
+   int tmp = scanf(" %s %s %s\n", src, dst, rel);
 
    char* srcPointer = contains(entitySpace, src);
    if(srcPointer == NULL) return;
@@ -201,19 +192,13 @@ void report(){
    char c;
 
    //Pulisco dopo il report
-   scanf("\n");
+   int tmp = scanf("\n");
 
    if(!relEntNum){
       printf("none\n");
       return;
    }
 
-   /*for(i = 0; i < ENTITY_RELATION_DIM; i++){
-      if(relations[i][0] != NULL)
-	 printf("%s | %s | %s\n", relations[i][0], relations[i][1], relations[i][2]);
-   }
-   return;*/
-   
    char* rel = relationSpace;
    while(*rel != '\0'){      
 
