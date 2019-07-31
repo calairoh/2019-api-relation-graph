@@ -2,8 +2,6 @@
 #include<string.h>
 #include<stdlib.h>
 
-#define FALSE 0
-#define TRUE 1
 #define N 1000
 #define RESULT_ROW 1000 
 #define ENTITY_SPACE_DIM 100000 //100 KB
@@ -33,12 +31,7 @@ char* relations[ENTITY_RELATION_DIM][3] = { { NULL, NULL, NULL } };
 int relEntNum = 0;
 
 int main(int argc, char** argv){
-   read();
-   
-   return 0;
-}
 
-void read(){
    char c;
    char command[COMMAND_LENGTH + 1];
    char* commandPointer;
@@ -70,10 +63,12 @@ void read(){
       command[3] = '\0';
    
    }while(strcmp(command, "end"));
+   
+   return 0;
 }
 
 void addRel(){
-   char rel[N+1], src[N+1], dst[N+1], c;
+   char rel[N+1], src[N+1], dst[N+1];
 
    int tmp = scanf(" %s %s %s\n", src, dst, rel);
 
