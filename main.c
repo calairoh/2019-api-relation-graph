@@ -4,31 +4,33 @@
 
 #define N 1000
 #define RESULT_ROW 1000 
-#define ENTITY_SPACE_DIM 100000 //100 KB
-#define RELATION_SPACE_DIM 100000 //100 KB
+#define ENTITY_SPACE_DIM_ROW 100 
+#define ENTITY_SPACE_DIM_COL 1000
+#define RELATION_SPACE_DIM_ROW 100
+#define RELATION_SPACE_DIM_COL 1000
 #define ENTITY_RELATION_DIM 2000000 //6 MB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
 #define NULL_CHAR '*'
+#define TRUE 1
 
-void read();
 void addEnt();
 void addRel();
 void delEnt();
 void delRel();
 void report();
-char* contains(char*, char*);
-int searchPlace(char*, char*, int, int, int);
+char* contains(char[][RELATION_SPACE_DIM_COL], char*, int, int);
+int hash(char*, int);
 
 //memory section
-char entitySpace[ENTITY_SPACE_DIM + 1] = { [0 ... ENTITY_SPACE_DIM] = '\0' };
-char relationSpace[RELATION_SPACE_DIM + 1] = { [0 ... RELATION_SPACE_DIM] = '\0' };
-int eMarker = 0;
-int rMarker = 0;
+char entitySpace[ENTITY_SPACE_DIM_ROW][ENTITY_SPACE_DIM_COL];
+char relationSpace[RELATION_SPACE_DIM_ROW][RELATION_SPACE_DIM_COL];
+char* relationIndexes[RELATION_SPACE_DIM_COL];
 int relNum = 0;
 
 char* relations[ENTITY_RELATION_DIM][3] = { { NULL, NULL, NULL } };
 int relEntNum = 0;
+int rIndex = 0;
 
 int main(int argc, char** argv){
 
@@ -72,22 +74,40 @@ void addRel(){
 
    int tmp = scanf(" %s %s %s\n", src, dst, rel);
 
-   char* srcPointer = contains(entitySpace, src);
+   char* srcPointer = contains(entitySpace, src, ENTITY_SPACE_DIM_ROW,
+   ENTITY_SPACE_DIM_COL);
    if(srcPointer == NULL) return;
 
-   char* dstPointer = contains(entitySpace, dst);
+   char* dstPointer = contains(entitySpace, dst, ENTITY_SPACE_DIM_ROW,
+   ENTITY_SPACE_DIM_COL);
    if(dstPointer == NULL) return;
 
-   char* relPointer = contains(relationSpace, rel);
+   char* relPointer = contains(relationSpace, rel, RELATION_SPACE_DIM_ROW,
+   RELATION_SPACE_DIM_COL);
 
    if(relPointer == NULL){
-      relPointer = &relationSpace[rMarker];
       int i;
-      for(i = 0; rel[i] != '\0'; i++){
-	 relationSpace[rMarker++] = rel[i];
+      int finish = 0;
+      int row = hash(rel, RELATION_SPACE_DIM_ROW);
+      while(!finish){
+	 char* str = relationSpace[row];
+	 for(i = 0; str[i] != '\0' && str[i + 1] != '\0'; i = (i + 1) %
+	    RELATION_SPACE_DIM_COL) ;
+      
+	 if((RELATION_SPACE_DIM_COL - i) < (tmp + 1)){
+	    row++;
+	 }
+	 else{
+	    if(i > 0) i+=2;
+
+	    strcpy(&str[i], rel);
+      
+	    relPointer = &str[i];
+	    relationIndexes[rIndex] = relPointer;
+	    rIndex++;
+	    finish = 1;
+	 }
       }
-      relationSpace[rMarker++] = '\0';
-      relNum++;
    }
    
    //Aggiungo alla matrice relations
@@ -112,7 +132,7 @@ void delEnt(){
    
    int tmp = scanf(" %s\n", ent);
 
-   char* init = contains(entitySpace, ent);
+   char* init = contains(entitySpace, ent, ENTITY_SPACE_DIM_ROW, ENTITY_SPACE_DIM_COL);
    
    if(init != NULL){   
       while(*init != '\0'){
@@ -125,15 +145,29 @@ void delEnt(){
 void addEnt(){
    char ent[N+1];
    int i;
+   int finish = 0;
    
    int tmp = scanf(" %s\n", ent);
 
-   char* init = contains(entitySpace, ent);
-   
+   char* init = contains(entitySpace, ent, ENTITY_SPACE_DIM_ROW,
+   ENTITY_SPACE_DIM_COL);
+
    if(init == NULL){
-      for(i = 0; ent[i] != '\0'; i++)
-	 entitySpace[eMarker++] = ent[i];
-      eMarker++;
+      int row = hash(ent, ENTITY_SPACE_DIM_ROW);
+      while(!finish){
+	 char* str = entitySpace[row];
+	 for(i = 0; str[i] != '\0' || str[i + 1] != '\0'; i = (i + 1) %
+	 (ENTITY_SPACE_DIM_COL - 1)) ;
+	 
+	 if((ENTITY_SPACE_DIM_COL - 1) < tmp){
+	    row = (row + 1) % ENTITY_SPACE_DIM_ROW;
+	 }
+	 else {
+	    if(i > 0) i++;
+	    strcpy(&str[i], ent);
+	    finish = 1;
+	 }
+      }
    }
 }
 
@@ -142,13 +176,16 @@ void delRel(){
 
    int tmp = scanf(" %s %s %s\n", src, dst, rel);
 
-   char* srcPointer = contains(entitySpace, src);
+   char* srcPointer = contains(entitySpace, src, ENTITY_SPACE_DIM_ROW,
+   ENTITY_SPACE_DIM_COL);
    if(srcPointer == NULL) return;
 
-   char* dstPointer = contains(entitySpace, dst);
+   char* dstPointer = contains(entitySpace, dst, ENTITY_SPACE_DIM_ROW,
+   ENTITY_SPACE_DIM_COL);
    if(dstPointer == NULL) return;
 
-   char* relPointer = contains(relationSpace, rel);
+   char* relPointer = contains(relationSpace, rel, RELATION_SPACE_DIM_ROW,
+   RELATION_SPACE_DIM_COL);
    if(relPointer == NULL) return;
    
    //Aggiungo alla matrice relations
@@ -169,7 +206,7 @@ void delRel(){
 }
 
 void report(){
-   int i, k, nMarker = 0, counter = 0, entityCounter = 0, toWriteNum = 0, num;
+   int i, k, t, nMarker = 0, counter = 0, entityCounter = 0, toWriteNum = 0, num;
    long max;
    char* result[RESULT_ROW][2] = { { NULL, NULL } };
    char* toWrite[RESULT_ROW * 10] = { NULL };
@@ -186,8 +223,8 @@ void report(){
       return;
    }
 
-   char* rel = relationSpace;
-   while(*rel != '\0'){      
+   for(t = 0; t < rIndex; t++){      
+      char* rel = relationIndexes[t];
 
       for(i = 0; i < num; i++){
 	 result[i][0] = NULL;
@@ -296,19 +333,38 @@ void report(){
    printf("\n");
 }
 
-char* contains(char *str, char *obj){
+char* contains(char matrix[][RELATION_SPACE_DIM_COL], char *obj, int rowDim, int colDim){
+   int row = hash(obj, rowDim);
+   int len = strlen(obj);
+
+   char* str = matrix[row];
+
    int i = 0;
+   if(str[i] == '\0')
+      return NULL;
 
-   while(i < ENTITY_SPACE_DIM){
-      if(!strcmp(&str[i], obj)) 
-	 return &str[i];
+   while(TRUE){
+      i = 0;
+      while(i < colDim){
+	 if(!strcmp(&str[i], obj)) 
+	    return &str[i];
 
-      for(; str[i] != '\0'; i++) ;
-      i++;
+	 for(; str[i] != '\0'; i++) ;
+	 i++;
 
-      if(str[i] == '\0') 
-	 return NULL;
+	 if(str[i] == '\0')
+	    if((colDim - i) < (len + 1))
+	       break;
+	    else
+	       return NULL;
+      }
+
+      row++;
    }
 
    return NULL;
+}
+
+int hash(char *str, int mod){
+   return (str[1] * str[2] * strlen(str)) % mod;
 }
