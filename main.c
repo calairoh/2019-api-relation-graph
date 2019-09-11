@@ -21,7 +21,7 @@ void delRel();
 void report();
 char* contains(char[][RELATION_SPACE_DIM_COL], char*, int, int);
 int hash(char*, int);
-
+ 
 //memory section
 char entitySpace[ENTITY_SPACE_DIM_ROW][ENTITY_SPACE_DIM_COL];
 char relationSpace[RELATION_SPACE_DIM_ROW][RELATION_SPACE_DIM_COL];
