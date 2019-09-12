@@ -8,8 +8,8 @@
 #define ENTITY_SPACE_DIM_COL 1000
 #define RELATION_SPACE_DIM_ROW 100
 #define RELATION_SPACE_DIM_COL 1000
-#define RESULT_SPACE_ROW 100
-#define RESULT_SPACE_COL 100  
+#define RESULT_SPACE_ROW 1000
+#define RESULT_SPACE_COL 1000  
 #define ENTITY_RELATION_DIM 2000000 //6 MB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
@@ -313,7 +313,7 @@ void delRel(){
    
    //Aggiungo alla matrice relations
    int hash = (long)relPointer % ENTITY_RELATION_DIM;
-   
+   int foundRel = 0; 
    //Scorro fino al primo posto libero
    for(; relations[hash][0] != NULL; hash = (hash + 1) % ENTITY_RELATION_DIM){
       if(relations[hash][0] == relPointer && 
@@ -324,30 +324,33 @@ void delRel(){
 	    relations[hash][1] = relations[hash + 1][1];
 	    relations[hash][2] = relations[hash + 1][2];
 	 }
+	 foundRel = 1;
       }
    }
 
    //Metto a posto il report
-   int found = 0, foundDst = 0, i, j;
-   for(i = 0; !found && reportSpace[i][1] != NULL && i < RESULT_SPACE_ROW; i++)
-      if(!strcmp(reportSpace[i][1], relPointer))
-	 found = 1;
+   if(foundRel){
+      int found = 0, foundDst = 0, i, j;
+      for(i = 0; !found && reportSpace[i][1] != NULL && i < RESULT_SPACE_ROW; i++)
+	 if(!strcmp(reportSpace[i][1], relPointer))
+	    found = 1;
    
-   if(found){
-      i--;
-      //Controllo se esiste il dstPointer
-      for(j = 2; !foundDst && reportSpace[i][j] != NULL && j < RESULT_SPACE_COL; j++)
-	 if(!strcmp(reportSpace[i][j], dstPointer))
-	    foundDst = 1;
+      if(found){
+	 i--;
+	 //Controllo se esiste il dstPointer
+	 for(j = 2; !foundDst && reportSpace[i][j] != NULL && j < RESULT_SPACE_COL; j++)
+	    if(!strcmp(reportSpace[i][j], dstPointer))
+	       foundDst = 1;
    
-      if(foundDst){
-	 for(j = j - 1; reportSpace[i][j] != NULL && j < RESULT_SPACE_COL - 1; j++){
-	    reportSpace[i][j] = reportSpace[i][j + 1];
-	 }
+	 if(foundDst){
+	    for(j = j - 1; reportSpace[i][j] != NULL && j < RESULT_SPACE_COL - 1; j++){
+	       reportSpace[i][j] = reportSpace[i][j + 1];
+	    }
 
-	 //Controllo se esiste un altro destinatario
-	 if(reportSpace[i][2] == NULL){
-	    restoreRelation(reportSpace[i][1], i);
+	    //Controllo se esiste un altro destinatario
+	    if(reportSpace[i][2] == NULL){
+	       restoreRelation(reportSpace[i][1], i);
+	    }
 	 }
       }
    }
