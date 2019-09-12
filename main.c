@@ -8,6 +8,8 @@
 #define ENTITY_SPACE_DIM_COL 1000
 #define RELATION_SPACE_DIM_ROW 100
 #define RELATION_SPACE_DIM_COL 1000
+#define RESULT_SPACE_ROW 100
+#define RESULT_SPACE_COL 100  
 #define ENTITY_RELATION_DIM 2000000 //6 MB
 #define STRING_EQUALS 0
 #define COMMAND_LENGTH 6
@@ -19,12 +21,16 @@ void addRel();
 void delEnt();
 void delRel();
 void report();
+void restoreRelation(char*, int);
+int findEntitiesToWrite(char*, int, char**, int*);
 char* contains(char[][RELATION_SPACE_DIM_COL], char*, int, int);
 int hash(char*, int);
  
 //memory section
 char entitySpace[ENTITY_SPACE_DIM_ROW][ENTITY_SPACE_DIM_COL];
 char relationSpace[RELATION_SPACE_DIM_ROW][RELATION_SPACE_DIM_COL];
+char* reportSpace[RESULT_SPACE_ROW][RESULT_SPACE_COL] = { { NULL } };
+char** reportPosition[RESULT_SPACE_ROW] = { NULL };
 char* relationIndexes[RELATION_SPACE_DIM_COL];
 int relNum = 0;
 
@@ -125,6 +131,86 @@ void addRel(){
    relations[hash][1] = srcPointer;
    relations[hash][2] = dstPointer;
    relEntNum++;
+
+   //report part
+
+   //search relation
+   int found = 0, foundDst = 0, i;
+   for(i = 0; !found && reportSpace[i][1] != NULL && i < RESULT_SPACE_ROW; i++)
+      if(!strcmp(reportSpace[i][1], relPointer))
+	 found = 1;
+	 
+   if(found){
+      //search the dst
+      i--;
+      int j;
+      for(j = 2; !foundDst && reportSpace[i][j] != NULL && j < RESULT_SPACE_COL; j++)
+	 if(!strcmp(reportSpace[i][j], dstPointer))
+	    foundDst = 1;
+
+      if(foundDst){
+	 reportSpace[i][2] = dstPointer;
+	 reportSpace[i][0]++;
+
+	 for(j = 3; reportSpace[i][j] != NULL && j < RESULT_SPACE_COL; j++)
+	    reportSpace[i][j] = NULL;
+      } else {
+	 int count = 0;
+
+	 hash = (long)relPointer % ENTITY_RELATION_DIM;
+	 for(; relations[hash][0] != NULL; hash = (hash + 1) % ENTITY_RELATION_DIM)
+	    if(relations[hash][2] == dstPointer &&
+	       *relations[hash][1] != '*' && 
+	       relations[hash][0] == relPointer)
+	    count++;
+
+	 if(count == (long)reportSpace[i][0]){
+	    //Cerco un posto dove metterlo
+	    int foundPlace = 0, k = 2;
+	    while(!foundPlace && reportSpace[i][k] != NULL && k < RESULT_SPACE_COL){
+	       if(strcmp(reportSpace[i][k], dstPointer) > 0)
+		  foundPlace = 1;
+	       k++;
+	    }
+	    
+	    if(foundPlace)
+	       k--;
+
+	    char* tmp1;
+	    char* tmp2 = dstPointer;
+	    do{
+	       tmp1 = reportSpace[i][k];
+	       reportSpace[i][k] = tmp2;
+	       tmp2 = tmp1;
+	       k++;
+	    }
+	    while(tmp1 != NULL && k < RESULT_SPACE_COL);	    
+	 }
+      }
+   } else {
+      //Se non ho trovato la relazione, la aggiungo
+      reportSpace[i][0] = (char*)1;
+      reportSpace[i][1] = relPointer;
+      reportSpace[i][2] = dstPointer;
+
+      //Cerco un posto nell'ordine delle relazioni
+      int j, foundPlace = 0;
+      for(j = 0; !foundPlace && reportPosition[j] != NULL && j < RESULT_SPACE_ROW; j++)
+	 if(strcmp(reportPosition[j][1], relPointer) > 0)
+	       foundPlace = 1;
+
+      if(foundPlace) 
+	 j--;
+
+      char** tmp1;
+      char** tmp2 = reportSpace[i];
+      do{
+	 tmp1 = reportPosition[j];
+	 reportPosition[j] = tmp2;
+	 tmp2 = tmp1;
+	 j++;
+      } while(tmp1 != NULL && j < RESULT_SPACE_ROW);
+   }
 }
 
 void delEnt(){
@@ -133,11 +219,48 @@ void delEnt(){
    int tmp = scanf(" %s\n", ent);
 
    char* init = contains(entitySpace, ent, ENTITY_SPACE_DIM_ROW, ENTITY_SPACE_DIM_COL);
+   char* word = init;
    
    if(init != NULL){   
       while(*init != '\0'){
 	 *init = '*';
 	 *init++;
+      }
+   
+      //Controllo nel report
+      int i;
+      for(i = 0; reportSpace[i][1] != NULL && i < RESULT_SPACE_ROW; i++){
+	 int hash = (long)reportSpace[i][1] % ENTITY_RELATION_DIM;
+
+	 for(; relations[hash][0] != NULL; hash++){
+	    if(relations[hash][1] == word){
+	       //Se è sorgente di qualcosa vado a vedere nel report se c'è la sua
+	       //destinazione e nel caso lo tolgo
+	       int j, k, found = 0;
+	       for(j = 0; reportSpace[j][1] != NULL; j++){
+		  for(k = 2; !found && reportSpace[j][k] != NULL; k++){
+		     if(relations[hash][2] == reportSpace[j][k]){
+			found = 1;
+			for(; reportSpace[j][k] != NULL; k++)
+			   reportSpace[j][k] = reportSpace[j][k + 1];
+		     }
+		  }
+	       }
+	    }
+	 }
+
+	 int s = 0;
+      }
+
+      for(i = 0; reportSpace[i][1] != NULL; i++){
+	 int j;
+	 for(j = 0; reportSpace[i][j] != NULL; j++)
+	    if(reportSpace[i][j] == word)
+	       for(; reportSpace[i][j] != NULL; j++)
+		  reportSpace[i][j] = reportSpace[i][j + 1];
+
+	 if(reportSpace[i][2] == NULL)
+	    restoreRelation(reportSpace[i][1], i);
       }
    }
 }
@@ -203,17 +326,111 @@ void delRel(){
 	 }
       }
    }
+
+   //Metto a posto il report
+   int found = 0, foundDst = 0, i, j;
+   for(i = 0; !found && reportSpace[i][1] != NULL && i < RESULT_SPACE_ROW; i++)
+      if(!strcmp(reportSpace[i][1], relPointer))
+	 found = 1;
+   
+   if(found){
+      i--;
+      //Controllo se esiste il dstPointer
+      for(j = 2; !foundDst && reportSpace[i][j] != NULL && j < RESULT_SPACE_COL; j++)
+	 if(!strcmp(reportSpace[i][j], dstPointer))
+	    foundDst = 1;
+   
+      if(foundDst){
+	 for(j = j - 1; reportSpace[i][j] != NULL && j < RESULT_SPACE_COL - 1; j++){
+	    reportSpace[i][j] = reportSpace[i][j + 1];
+	 }
+
+	 //Controllo se esiste un altro destinatario
+	 if(reportSpace[i][2] == NULL){
+	    restoreRelation(reportSpace[i][1], i);
+	 }
+      }
+   }
+}
+
+void restoreRelation(char* relPointer, int i){
+   char* entities[RESULT_ROW] = { NULL };
+   int indexes[RESULT_ROW] = { [ 0 ... RESULT_ROW - 1 ] = -1 };
+   int k, j;
+	    
+   int hash = (long)relPointer % ENTITY_RELATION_DIM;
+   long max = findEntitiesToWrite(relPointer, hash, entities, indexes);
+   for(k = 0; indexes[k] != -1; k++){
+      int index = indexes[k];
+      int foundPlace = 0;
+      for(j = 2; !foundPlace && reportSpace[i][j] != NULL; j++)
+        if(strcmp(reportSpace[i][j], entities[index]) > 0)
+           foundPlace = 1;
+      
+      if(foundPlace)
+	 j--;   
+	        
+      char* tmp1;
+      char* tmp2 = entities[index];
+      do{
+	 tmp1 = reportSpace[i][j];
+	 reportSpace[i][j] = tmp2;
+	 tmp2 = tmp1;
+	 j++;
+      }
+      while(tmp1 != NULL && k < RESULT_SPACE_COL);
+   }
+
+   if(k == 0){
+      reportSpace[i][0] = NULL;
+      //reportSpace[i][1] = NULL;
+      
+      /*int i;
+      for(i = 0; reportPosition[i] != NULL; i++)
+	 if(reportPosition[i] == reportSpace[i])
+	    for(; reportPosition[i] != NULL; i++)
+	       reportPosition[i] = reportPosition[i + 1];*/
+   } else {
+      reportSpace[i][0] = (char*)max;
+   }
+}
+
+int findEntitiesToWrite(char* relPointer, int hash, char** entities, int* indexes){
+   int entitiesMax[RESULT_ROW] = { 0 };
+   int i;
+
+   for(; relations[hash][0] != NULL; hash++){
+      if(relations[hash][0] == relPointer){
+	 if(*relations[hash][1] != '*' && *relations[hash][2] != '*'){
+	    int found = 0;
+	    for(i = 0; !found && entities[i] != NULL && i < RESULT_ROW; i++)
+	       if(entities[i] == relations[hash][2]){
+		  entitiesMax[i]++;
+		  found = 1;
+	       }
+
+	    if(!found){
+	       entities[i] = relations[hash][2];
+	       entitiesMax[i]++;
+	    }
+	 }
+      }
+   }
+
+   int max = 0, k = 0; 
+   for(i = 0; entitiesMax[i] > 0 && i < RESULT_ROW; i++)
+      if(entitiesMax[i] > max)
+	 max = entitiesMax[i];
+
+   for(i = 0; entitiesMax[i] > 0 && i < RESULT_ROW; i++)
+      if(entitiesMax[i] == max)
+	 indexes[k++] = i;
+	 
+   return max;   
 }
 
 void report(){
-   int i, k, t, nMarker = 0, counter = 0, entityCounter = 0, toWriteNum = 0, num;
-   long max;
-   char* result[RESULT_ROW][2] = { { NULL, NULL } };
-   char* toWrite[RESULT_ROW * 10] = { NULL };
-   char* entitiesToWrite[RESULT_ROW] = { NULL };
-   char numbers[RESULT_ROW] = { '\0' };
-   char semiColon = ';';
-   char c;
+   int i, k;   
 
    //Pulisco dopo il report
    int tmp = scanf("\n");
@@ -223,113 +440,15 @@ void report(){
       return;
    }
 
-   for(t = 0; t < rIndex; t++){      
-      char* rel = relationIndexes[t];
+   for(i = 0; reportPosition[i] != NULL && i < RESULT_SPACE_ROW; i++){
+      if(reportPosition[i][0] != NULL){
+	 for(k = 1; reportPosition[i][k] != NULL && k < RESULT_SPACE_COL; k++) 
+	    if(*reportPosition[i][k] != '*')
+	       printf("%s ", reportPosition[i][k]);
 
-      for(i = 0; i < num; i++){
-	 result[i][0] = NULL;
-	 result[i][1] = NULL;
+	 printf("%ld; ", (long)reportPosition[i][0]);
       }
-      
-      num = 0;      
-      int hash = (long)(rel) % ENTITY_RELATION_DIM;
-
-      for(; relations[hash][0] != NULL; hash++){
-	 if(relations[hash][0] == rel){
-	    if(*relations[hash][1] != '*' && *relations[hash][2] != '*'){
-	       for(k = 0; result[k][0] != NULL && result[k][0] != relations[hash][2]; k++) ;
-	       if(result[k][0] == NULL){
-		  num++;
-		  result[k][0] = relations[hash][2];
-	       }
-	       
-	       result[k][1]++;
-	    }
-	 }
-      }
-      
-      if(result[0][0] != NULL){	
-	 
-	 //Cerco le entità con il massimo che andranno poi stampate
-	 max = 0;
-	 for(i = 0; i < num; i++) {
-	    if((long)result[i][1] > max){
-	       max = (long)result[i][1];
-	       entitiesToWrite[0] = result[i][0];
-	       entityCounter = 1;
-	       for(k = 1; entitiesToWrite[k] != NULL; k++) 
-		  entitiesToWrite[k] = NULL;
-	    } else if((long)result[i][1] == max){
-	       k = 0;
-	       
-	       while(entitiesToWrite[k] != NULL && strcmp(entitiesToWrite[k], result[i][0]) < 0) 
-		  k++;
-	       
-	       int j;
-	       for(j = entityCounter; j > k; j--)
-		  entitiesToWrite[j] = entitiesToWrite[j-1];
-	       entitiesToWrite[j] = result[i][0];
-	       entityCounter++;
-	    }
-	 }
-
-	 //Cerco un posto dove mettere la relazione
-	 if(!counter){
-	    //Inserisco al primo posto
-	    toWrite[0] = rel;
-	    counter++;
-	    k = 0;
-	 } else {
-	    i = 0;
-	    while(toWrite[i] != NULL && strcmp(toWrite[i], rel) < 0){
-	       while(toWrite[i] != NULL && *(toWrite[i]) == '"') 
-		  i++;
-	       //Se non è NULL sono su un numero, dunque controllo il prossimo
-	       if(toWrite[i] != NULL)
-		  i++;
-	    }
-	    
-	    if(toWrite[i] != NULL){
-	       for(k = toWriteNum + entityCounter + 1; k > i; k--)
-		  toWrite[k] = toWrite[k - entityCounter - 2];
-	       toWrite[k] = rel;
-	    } else {
-	       k = i;
-	       toWrite[k] = rel;
-	    }
-	 } 
-
-	 for(i = 0; i < entityCounter; i++){
-	    toWrite[k + i + 1] = entitiesToWrite[i];
-	 }
-	 toWrite[k + entityCounter + 1] = &numbers[nMarker];
-	 toWriteNum += entityCounter + 2;
-
-	 int maxTmp = max, tmp = 0;
-	 while(maxTmp > 0){
-	    maxTmp /= 10;
-	    tmp++;
-	 }
-
-	 numbers[nMarker + tmp] = semiColon;
-	 int nMarkerNext = nMarker + tmp + 2;
-	 tmp--; 
-	 while(max > 0){
-	    numbers[nMarker + tmp] = (char)((max % 10) + '0');
-	    max /= 10;
-	    tmp--;
-	 }
-	 nMarker = nMarkerNext;
-      }
-      
-      //Vado alla prossima relazione
-      for(; *rel != '\0'; rel++) ;
-      rel++;
-   
    }
-
-   for(i = 0; toWrite[i] != NULL; i++)
-      printf("%s ", toWrite[i]);
    printf("\n");
 }
 
